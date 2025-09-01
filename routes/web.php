@@ -22,3 +22,4 @@ Route::prefix('student/{student}')->group(function () {
 });
 
 
+

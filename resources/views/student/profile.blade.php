@@ -1,36 +1,47 @@
-@extends('layouts.app')
+{{-- resources/views/student/profile.blade.php --}}
+@extends('layouts.superedu')
+@section('title','SuperEdu - Profile')
+@section('page-title','Profile')
 
 @section('content')
-@php($studentId = $student->student_id)
+  <div class="bg-white rounded-lg shadow p-6 max-w-2xl">
+    @if(session('status'))
+      <div class="mb-4 p-3 rounded bg-green-50 text-green-700">{{ session('status') }}</div>
+    @endif
 
-<h1 class="text-xl font-semibold mb-4">My Profile</h1>
+    <form method="POST" action="{{ route('student.profile.update', $student->student_id) }}">
+      @csrf
 
-<form method="POST" action="{{ route('student.profile.update', $studentId) }}" class="rounded-lg border bg-white p-4 max-w-lg">
-    @csrf
-    <div class="grid gap-4">
-        <label class="text-sm">
-            <span class="block mb-1">Name</span>
-            <input name="studentName" value="{{ old('studentName',$student->studentName) }}" class="w-full rounded border px-3 py-2">
-        </label>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="text-sm text-gray-600">Name</label>
+          <input name="studentName" value="{{ old('studentName',$student->studentName) }}"
+                 class="w-full mt-1 border rounded px-3 py-2">
+          @error('studentName')<p class="text-red-600 text-sm">{{ $message }}</p>@enderror
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">Phone</label>
+          <input name="phoneNum" value="{{ old('phoneNum',$student->phoneNum) }}"
+                 class="w-full mt-1 border rounded px-3 py-2">
+        </div>
+        <div class="md:col-span-2">
+          <label class="text-sm text-gray-600">Address</label>
+          <input name="address" value="{{ old('address',$student->address) }}"
+                 class="w-full mt-1 border rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="text-sm text-gray-600">Gender</label>
+          <select name="gender" class="w-full mt-1 border rounded px-3 py-2">
+            <option {{ old('gender',$student->gender)=='Male'?'selected':'' }}>Male</option>
+            <option {{ old('gender',$student->gender)=='Female'?'selected':'' }}>Female</option>
+            <option {{ old('gender',$student->gender)=='Other'?'selected':'' }}>Other</option>
+          </select>
+        </div>
+      </div>
 
-        <label class="text-sm">
-            <span class="block mb-1">Phone</span>
-            <input name="phoneNum" value="{{ old('phoneNum',$student->phoneNum) }}" class="w-full rounded border px-3 py-2">
-        </label>
-
-        <label class="text-sm">
-            <span class="block mb-1">Address</span>
-            <input name="address" value="{{ old('address',$student->address) }}" class="w-full rounded border px-3 py-2">
-        </label>
-
-        <label class="text-sm">
-            <span class="block mb-1">Gender</span>
-            <input name="gender" value="{{ old('gender',$student->gender) }}" class="w-full rounded border px-3 py-2">
-        </label>
-    </div>
-
-    <div class="mt-4">
-        <button class="rounded bg-indigo-600 text-white px-4 py-2 text-sm hover:bg-indigo-700">Save changes</button>
-    </div>
-</form>
+      <div class="mt-6">
+        <button class="bg-blue-600 text-white px-4 py-2 rounded">Save</button>
+      </div>
+    </form>
+  </div>
 @endsection

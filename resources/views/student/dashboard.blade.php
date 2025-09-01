@@ -1,38 +1,27 @@
-@extends('layouts.app')
+{{-- resources/views/student/dashboard.blade.php --}}
+@extends('layouts.superedu')
+
+@section('title','SuperEdu - Dashboard')
+@section('page-title','Dashboard')
 
 @section('content')
-@php($studentId = $student->student_id)
+  {{-- Replace the cards with dynamic values if you want --}}
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    {{-- Example card component inline (you can extract later) --}}
+    <div class="dashboard-card bg-white rounded-lg shadow p-6 flex items-center hover:shadow-md">
+      <div class="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+        <i class="fas fa-user-graduate text-xl"></i>
+      </div>
+      <div>
+        <p class="text-gray-500 text-sm">My Upcoming Lessons</p>
+        <h3 class="text-2xl font-bold">{{ $upcoming->count() }}</h3>
+        <p class="text-xs text-gray-400">Next: {{ optional($upcoming->first())->start_at?->format('D, d M H:i') ?? '—' }}</p>
+      </div>
+    </div>
 
-<h1 class="text-xl font-semibold mb-4">Hi, {{ $student->studentName }}</h1>
+    {{-- …add your other 3 cards, or keep them static for now --}}
+  </div>
 
-<div class="grid md:grid-cols-2 gap-6">
-    <section class="rounded-lg border bg-white p-4">
-        <h2 class="font-medium mb-3">Upcoming lessons</h2>
-        @if($upcoming->isEmpty())
-            <p class="text-sm text-slate-600">No lessons scheduled.</p>
-        @else
-            <ul class="divide-y">
-                @foreach($upcoming as $l)
-                    <li class="py-3 text-sm">
-                        <div class="font-medium">Lesson {{ $l->lesson_id }}</div>
-                        <div class="text-slate-600">
-                            {{ \Carbon\Carbon::parse($l->start_at)->format('d M Y, g:i A') }}
-                            — {{ \Carbon\Carbon::parse($l->ends_at)->format('g:i A') }}
-                            @if($l->room) • room {{ $l->room }} @endif
-                        </div>
-                    </li>
-                @endforeach
-            </ul>
-        @endif
-    </section>
-
-    <section class="rounded-lg border bg-white p-4">
-        <h2 class="font-medium mb-3">Shortcuts</h2>
-        <div class="flex flex-wrap gap-2">
-            <a class="px-3 py-2 text-sm rounded border hover:bg-slate-50" href="{{ route('student.classes',$studentId) }}">Manage Classes</a>
-            <a class="px-3 py-2 text-sm rounded border hover:bg-slate-50" href="{{ route('student.payments',$studentId) }}">View Payments</a>
-            <a class="px-3 py-2 text-sm rounded border hover:bg-slate-50" href="{{ route('student.profile',$studentId) }}">Edit Profile</a>
-        </div>
-    </section>
-</div>
+  {{-- Recent Activity / Upcoming classes – you can paste your HTML here unchanged,
+       or loop with Blade if you have the data ready. --}}
 @endsection

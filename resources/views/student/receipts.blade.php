@@ -1,4 +1,6 @@
-@extends('layouts.app')
+@extends('layouts.superedu')
+@section('title','SuperEdu - Profile')
+@section('page-title','Profile')
 
 @section('content')
 @php($studentId = $student->student_id)
