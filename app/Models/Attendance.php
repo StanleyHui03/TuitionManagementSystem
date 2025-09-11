@@ -18,19 +18,32 @@ class Attendance extends Model
     public const ID_PAD_LENGTH = 4;
 
     protected $fillable = [
-        'marked_by_tutor_id', 'lesson_id', 'student_id', 'status'
+        'lesson_id',
+        'student_id',
+        'marked_by_tutor_id',
+        'status',
+        'session_date',
+        'marked_at',
+        'note',
+    ];
+
+    protected $casts = [
+        'session_date' => 'date',
+        'marked_at'    => 'datetime',
     ];
 
     public function lesson()
     {
-        return $this->belongsTo(Lessons::class, 'lesson_id', 'lesson_id');
+        return $this->belongsTo(Lesson::class, 'lesson_id', 'lesson_id');
     }
 
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id', 'student_id');
     }
+
+    public function markedByTutor()
+    {
+        return $this->belongsTo(Tutor::class, 'marked_by_tutor_id', 'tutor_id');
+    }
 }
-
-
-
