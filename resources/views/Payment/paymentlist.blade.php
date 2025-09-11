@@ -43,7 +43,7 @@
                 <thead class="table-dark">
                     <tr>
                         <th>Payment ID</th>
-                        <th>Student ID</th>
+                        <th>Student Name</th>
                         <th>Payment Date</th>
                         <th>Payment Total</th>
                         <th>Status</th>
@@ -55,15 +55,20 @@
                     @forelse ($payments as $payment)
                         <tr>
                             <td>{{ $payment->payment_id }}</td>
-                            <td>{{ $payment->student_id }}</td>
-                            <td>{{ $payment->paymentDate }}</td>
+                            <td>
+                                <span title="{{ $payment->student?->studentName ?? 'N/A' }}">
+                                    {{ $payment->student?->student_id ?? 'N/A' }}
+                                </span>
+                            </td>
+
+                            <td>{{ $payment->paymentDate->format('Y-m-d') }}</td>
                             <td>RM {{ number_format($payment->paymentTotal, 2) }}</td>
                             <td>
                                 <span class="badge
-                                        @if($payment->status === 'Paid') bg-success
-                                        @elseif($payment->status === 'Pending') bg-warning text-dark
-                                        @else bg-danger
-                                        @endif">
+                                                                @if($payment->status === 'Paid') bg-success
+                                                                @elseif($payment->status === 'Pending') bg-warning text-dark
+                                                                @else bg-danger
+                                                                @endif">
                                     {{ $payment->status }}
                                 </span>
                             </td>
@@ -101,6 +106,9 @@
                                         class="btn btn-primary btn-sm me-1">
                                         Edit
                                     </a>
+                                    <a href="{{ route('payments.view', $payment->payment_id) }}" class="btn btn-info btn-sm me-1">
+                                        Receipt
+                                    </a>
                                     <form action="{{ route('payments.destroy', $payment->payment_id) }}" method="POST"
                                         class="d-inline">
                                         @csrf
@@ -126,5 +134,5 @@
             {{ $payments->appends(request()->query())->links() }}
         </div>
     </div>
-    
+
 @endsection

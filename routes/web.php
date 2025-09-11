@@ -15,6 +15,12 @@ Route::resource('payments', PaymentsController::class);
 Route::patch('/payments/{id}/restore', [PaymentsController::class, 'undoDelete'])
     ->name('payments.undo');
 
+Route::get('/payments/{payment}/view', [PaymentsController::class, 'view'])
+    ->name('payments.view');
+
+Route::get('/payments/{payment}/download', [PaymentsController::class, 'download'])
+    ->name('payments.download');
+
 // Default landing page
 Route::get('/', function () {
     return Inertia::render('Welcome', [

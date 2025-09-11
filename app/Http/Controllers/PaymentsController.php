@@ -48,32 +48,37 @@ class PaymentsController extends Controller
 
     public function create()
     {
-        $subjects = Subject::orderBy('subject_Name')->pluck('subject_Name')->all();
+        $subjects = Subject::orderBy('subject_Name')
+            ->get(['subject_id', 'subject_Name', 'subject_Fee']);
 
-        return view('Payment/paymentpage', compact('subjects'));
+        return view('Payment.paymentpage', compact('subjects'));
     }
+
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'student_id' => 'required|string|exists:students,student_id',
             'paymentDate' => 'required|date',
-            'paymentTotal' => 'required|numeric|min:0',
             'status' => 'required|in:Pending,Paid,Cancelled',
             'description' => 'nullable|array',
             'description.*' => 'string',
         ]);
 
-        Payments::create([
+        $selectedSubjects = $validated['description'] ?? [];
+        $total = \App\Models\Subject::whereIn('subject_Name', $selectedSubjects)->sum('subject_Fee');
+
+        \App\Models\Payments::create([
             'student_id' => $validated['student_id'],
             'paymentDate' => $validated['paymentDate'],
-            'paymentTotal' => $validated['paymentTotal'],
+            'paymentTotal' => $total,
             'status' => $validated['status'],
-            'description' => $validated['description'] ?? [],
+            'description' => $selectedSubjects,
         ]);
 
         return redirect()->route('payments.index')->with('success', 'Payment created successfully!');
     }
+
 
     public function edit(Payments $payment)
     {
@@ -128,4 +133,13 @@ class PaymentsController extends Controller
 
         return redirect()->route('payments.index')->with('success', 'Payment restored successfully!');
     }
+
+    public function view(Payments $payment)
+    {
+
+        $payment->load('student');
+
+        return view('Payment.view', compact('payment'));
+    }
+
 }

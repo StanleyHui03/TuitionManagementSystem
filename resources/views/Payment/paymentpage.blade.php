@@ -4,16 +4,6 @@
     <div class="container mt-5">
         <h2 class="text-center mb-4">Create New Payment</h2>
 
-        @if ($errors->any())
-            <div class="alert alert-danger">
-                <ul class="mb-0">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
         <div class="card shadow p-4">
             <form method="POST" action="{{ route('payments.store') }}">
                 @csrf
@@ -25,40 +15,27 @@
 
                 <div class="mb-3">
                     <label class="form-label">Student ID</label>
-                    <input type="text" name="student_id" class="form-control" value="{{ old('student_id') }}" required>
+                    <input type="text" name="student_id" class="form-control" required>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Payment Date</label>
-                    <input type="date" name="paymentDate" class="form-control" value="{{ old('paymentDate') }}" required>
+                    <input type="date" name="paymentDate" class="form-control" value="{{ old('paymentDate', now()->format('Y-m-d')) }}" required>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Payment Total (RM)</label>
-                    <input type="number" step="0.01" name="paymentTotal" class="form-control"
-                        value="{{ old('paymentTotal') }}" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Status</label>
-                    <select name="status" class="form-select" required>
-                        <option value="">-- Select Status --</option>
-                        <option value="Pending" {{ old('status') == 'Pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="Paid" {{ old('status') == 'Paid' ? 'selected' : '' }}>Paid</option>
-                        <option value="Cancelled" {{ old('status') == 'Cancelled' ? 'selected' : '' }}>Cancelled</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label d-block">Description (Subjects)</label>
+                    <label class="form-label d-block">Select Subjects</label>
                     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-2">
-                        @foreach ($subjects as $subjectName)
+                        @foreach ($subjects as $subject)
                             <div class="col">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="desc_{{ Str::slug($subjectName, '_') }}"
-                                        name="description[]" value="{{ $subjectName }}" {{ is_array(old('description')) && in_array($subjectName, old('description')) ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="desc_{{ Str::slug($subjectName, '_') }}">
-                                        {{ $subjectName }}
+                                    <input type="checkbox" class="form-check-input subject-checkbox"
+                                        id="subject_{{ $subject->subject_id }}" name="description[]"
+                                        value="{{ $subject->subject_Name }}" data-fee="{{ $subject->subject_Fee }}"
+                                         {{ $loop->first ? 'required' : '' }}>
+                                    <label class="form-check-label" for="subject_{{ $subject->subject_id }}">
+                                        {{ $subject->subject_Name }}
+                                        <small class="text-muted">(RM {{ number_format($subject->subject_Fee, 2) }})</small>
                                     </label>
                                 </div>
                             </div>
@@ -66,6 +43,21 @@
                     </div>
                 </div>
 
+                <div class="mb-4">
+                    <label class="form-label">Payment Total (RM)</label>
+                    <input type="number" step="0.01" id="paymentTotal" name="paymentTotal" class="form-control" value="0.00"
+                        readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select" required>
+                        <option value="">-- Select Status --</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
 
                 <div class="d-flex justify-content-between">
                     <button type="submit" class="btn btn-success">Add New Payment</button>
@@ -74,4 +66,29 @@
             </form>
         </div>
     </div>
+
+    {{-- JS to auto-update total --}}
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const checkboxes = document.querySelectorAll(".subject-checkbox");
+            const totalInput = document.getElementById("paymentTotal");
+
+            function recalc() {
+                let total = 0;
+                checkboxes.forEach(cb => {
+                    if (cb.checked) {
+                        const fee = parseFloat(cb.dataset.fee || "0");
+                        total += isNaN(fee) ? 0 : fee;
+                    }
+                });
+                totalInput.value = total.toFixed(2);
+            }
+
+            // Initial calc
+            recalc();
+
+            // Recalculate whenever a subject is checked
+            checkboxes.forEach(cb => cb.addEventListener("change", recalc));
+        });
+    </script>
 @endsection
