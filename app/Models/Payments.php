@@ -14,7 +14,7 @@ class Payments extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    public const ID_PREFIX     = 'P';
+    public const ID_PREFIX = 'P';
     public const ID_PAD_LENGTH = 4;
 
     protected $fillable = [
@@ -22,13 +22,13 @@ class Payments extends Model
         'paymentTotal',
         'paymentDate',
         'status',
-        'description',       
+        'description',
     ];
 
     protected $casts = [
         'paymentDate' => 'date',
-        'paymentTotal'=> 'decimal:2',
-        'description' => 'array',   
+        'paymentTotal' => 'decimal:2',
+        'description' => 'array',
     ];
 
     protected static function booted()
@@ -36,7 +36,7 @@ class Payments extends Model
         static::creating(function ($payment) {
             if (empty($payment->payment_id)) {
                 $lastId = self::withTrashed()->max('payment_id'); // includes soft-deleted
-                $next   = $lastId ? (int) substr($lastId, strlen(self::ID_PREFIX)) + 1 : 1;
+                $next = $lastId ? (int) substr($lastId, strlen(self::ID_PREFIX)) + 1 : 1;
                 $payment->payment_id = self::ID_PREFIX . str_pad($next, self::ID_PAD_LENGTH, '0', STR_PAD_LEFT);
             }
         });
@@ -47,6 +47,16 @@ class Payments extends Model
     public function student()
     {
         return $this->belongsTo(Student::class, 'student_id', 'student_id');
+    }
+
+    public function tutor()
+    {
+        return $this->belongsTo(Tutor::class, 'tutor_id', 'tutor_id');
+    }
+
+    public function classroom()
+    {
+        return $this->belongsTo(Classes::class, 'class_id', 'class_id');
     }
 
     public function receipt()
@@ -65,4 +75,6 @@ class Payments extends Model
     {
         return $query->onlyTrashed();
     }
+
+    
 }

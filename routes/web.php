@@ -2,11 +2,15 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReceiptController;
-use App\Http\Controllers\PaymentsController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+
+use App\Http\Middleware\Authenticate; 
+use Illuminate\Foundation\Application;
+use App\Http\Controllers\PaymentsController;
+use App\Http\Controllers\PaymentReportController;
 use Inertia\Inertia;
 
+//////////////
 // Resource routes
 Route::resource('receipts', ReceiptController::class);
 Route::resource('payments', PaymentsController::class);
@@ -18,9 +22,6 @@ Route::patch('/payments/{id}/restore', [PaymentsController::class, 'undoDelete']
 Route::get('/payments/{payment}/view', [PaymentsController::class, 'view'])
     ->name('payments.view');
 
-Route::get('/payments/{payment}/download', [PaymentsController::class, 'download'])
-    ->name('payments.download');
-
 // Default landing page
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -30,6 +31,7 @@ Route::get('/', function () {
         'phpVersion' => PHP_VERSION,
     ]);
 });
+/////////////
 
 // Dashboard
 Route::get('/dashboard', function () {
@@ -43,4 +45,20 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+//////////////
+Route::middleware(['auth', 'can:view-payments'])->group(function () {
+    Route::get('/payments-report', [PaymentReportController::class, 'show'])
+        ->name('payments.report');
+
+    Route::get('/payments-report.json', [PaymentReportController::class, 'data'])
+        ->name('payments.report.json');
+});
+
+if (app()->environment('local')) {
+    Route::get('/_dev/payments-report.json', [PaymentReportController::class, 'data'])
+        ->withoutMiddleware([Authenticate::class])
+        ->name('payments.report.json.dev');
+}
+///////////
 require __DIR__ . '/auth.php';
+

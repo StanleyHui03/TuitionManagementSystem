@@ -65,10 +65,9 @@
                             <td>RM {{ number_format($payment->paymentTotal, 2) }}</td>
                             <td>
                                 <span class="badge
-                                                                @if($payment->status === 'Paid') bg-success
-                                                                @elseif($payment->status === 'Pending') bg-warning text-dark
-                                                                @else bg-danger
-                                                                @endif">
+                                    @if($payment->status === 'Paid') bg-success
+                                    @elseif($payment->status === 'Pending') bg-warning text-dark
+                                    @else bg-danger @endif">
                                     {{ $payment->status }}
                                 </span>
                             </td>
@@ -93,6 +92,7 @@
                             </td>
                             <td>
                                 @if ($payment->trashed())
+                                    {{-- Undo soft delete --}}
                                     <form action="{{ route('payments.undo', $payment->payment_id) }}" method="POST"
                                         class="d-inline">
                                         @csrf
@@ -102,24 +102,30 @@
                                         </button>
                                     </form>
                                 @else
-                                    <a href="{{ route('payments.edit', $payment->payment_id) }}"
-                                        class="btn btn-primary btn-sm me-1">
-                                        Edit
-                                    </a>
-                                    <a href="{{ route('payments.view', $payment->payment_id) }}" class="btn btn-info btn-sm me-1">
-                                        Receipt
-                                    </a>
-                                    <form action="{{ route('payments.destroy', $payment->payment_id) }}" method="POST"
-                                        class="d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-sm"
-                                            onclick="return confirm('Are you sure you want to delete this payment?');">
-                                            Delete
-                                        </button>
-                                    </form>
+                                    @if ($payment->status === 'Paid')
+                                        {{-- Show receipt for Paid --}}
+                                        <a href="{{ route('payments.view', $payment->payment_id) }}" class="btn btn-info btn-sm me-1">
+                                            Receipt
+                                        </a>
+                                    @else
+                                        {{-- Edit + Delete for Pending/Cancelled --}}
+                                        <a href="{{ route('payments.edit', $payment->payment_id) }}"
+                                            class="btn btn-primary btn-sm me-1">
+                                            Edit
+                                        </a>
+                                        <form action="{{ route('payments.destroy', $payment->payment_id) }}" method="POST"
+                                            class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger btn-sm"
+                                                onclick="return confirm('Are you sure you want to delete this payment?');">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    @endif
                                 @endif
                             </td>
+
                         </tr>
                     @empty
                         <tr>
