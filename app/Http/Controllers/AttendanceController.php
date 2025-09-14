@@ -15,7 +15,10 @@ use Illuminate\Contracts\View\View as ViewContract;
 
 class AttendanceController extends Controller
 {
-    
+    /**
+     * Tutor: open mark-attendance page for a lesson & date.
+     * GET /lessons/{lesson}/attendance?session_date=YYYY-MM-DD
+     */
     public function create(Request $request, Lesson $lesson)
 {
     // Authorize: admin OR the tutor who owns this lesson
@@ -25,15 +28,16 @@ class AttendanceController extends Controller
         abort(403, 'You do not have permission to take attendance for this lesson.');
     }
 
+    // Use a single, consistent name everywhere: session_date
     $session_date = $request->query('session_date') ?: Carbon::now()->toDateString();
 
-    // Roster from pivot;
+    // Roster from pivot; QUALIFY columns to avoid ambiguity
     $roster = $lesson->students()
         ->select('students.student_id', 'students.studentName')
         ->orderBy('students.studentName')
         ->get();
 
-    // Existing attendance for prefill student_id key
+    // Existing attendance for prefill (key by student_id)
     $existing = Attendance::where('lesson_id', $lesson->lesson_id)
         ->whereDate('session_date', $session_date)
         ->get()
@@ -69,7 +73,7 @@ class AttendanceController extends Controller
     $session_date = $data['session_date'] ?? now()->toDateString();
     $now = now();
 
-    // Use updateOrCreate so the model generates id
+    // Use updateOrCreate so the model generates A0001/A0002... for NEW rows
     foreach ($data['attendance'] as $studentId => $status) {
         Attendance::updateOrCreate(
             [
@@ -94,12 +98,13 @@ class AttendanceController extends Controller
 
     /**
      * Student: view ONLY their own attendance.
+     * GET /student/attendance
      */
     public function studentAttendance(): View
     {
         $user = Auth::user();
 
-        // Map user to student_id
+        // Map user -> student_id (adjust if your relation differs)
         $studentId = optional($user->student)->student_id
             ?? DB::table('students')->where('user_id', $user->id)->value('student_id');
 
@@ -109,6 +114,9 @@ class AttendanceController extends Controller
 
         $attendance = Attendance::with([
                 'lesson',
+                // Uncomment if you have these relationships on Lesson:
+                // 'lesson.class',
+                // 'lesson.subject',
                 'markedByTutor',
             ])
             ->where('student_id', $studentId)
@@ -120,12 +128,19 @@ class AttendanceController extends Controller
 
     public function apiUpdateAttendance(Request $request, Lesson $lesson)
     {
-        $tutorIdFromRel = optional(optional(Auth::user())->tutor)->tutor_id;
-        $tutorIdLookup  = DB::table('tutors')->where('user_id', Auth::id())->value('tutor_id');
-        $tutorId        = $tutorIdFromRel ?? $tutorIdLookup;
+        $user = Auth::user();
 
-        if (!$tutorId || (string)$tutorId !== (string)$lesson->tutor_id) {
-            return response()->json(['status' => 'fail', 'message' => 'Forbidden'], 403);
+        // ✅ Allow admin, or the tutor who owns the lesson
+        if (($user->role ?? null) === 'admin') {
+            $tutorId = DB::table('tutors')->where('user_id', $user->id)->value('tutor_id'); // may be null for admin
+        } else {
+            $tutorIdFromRel = optional(optional($user)->tutor)->tutor_id;
+            $tutorIdLookup  = DB::table('tutors')->where('user_id', $user->id)->value('tutor_id');
+            $tutorId        = $tutorIdFromRel ?? $tutorIdLookup;
+
+            if (!$tutorId || (string)$tutorId !== (string)$lesson->tutor_id) {
+                return response()->json(['status' => 'fail', 'message' => 'Forbidden'], 403);
+            }
         }
 
         // Validate (Zero-Trust)
@@ -136,6 +151,7 @@ class AttendanceController extends Controller
             'note'         => ['nullable', 'string', 'max:500'],
         ]);
 
+        // IDOR protection: confirm student is enrolled in this lesson
         $isEnrolled = DB::table('lesson_students')
             ->where('lesson_id', $lesson->lesson_id)
             ->where('student_id', $data['student_id'])
@@ -148,6 +164,7 @@ class AttendanceController extends Controller
             ], 422);
         }
 
+        // Upsert attendance
         $attendance = Attendance::where('lesson_id', $lesson->lesson_id)
             ->where('student_id', $data['student_id'])
             ->whereDate('session_date', $data['session_date'])
@@ -177,9 +194,9 @@ class AttendanceController extends Controller
             'attendance' => $attendance,
         ]);
     }
-
     /**
      * API (Student): retrieve ONLY own attendance history (optionally by date range).
+     * GET /api/v1/students/me/attendance?from=YYYY-MM-DD&to=YYYY-MM-DD
      * Returns: JSON
      */
     public function apiStudentAttendance(Request $request)
@@ -197,7 +214,7 @@ class AttendanceController extends Controller
         $from = $request->query('from');
         $to   = $request->query('to');
 
-        $q = Attendance::with(['lesson', 'markedByTutor'])
+        $q = Attendance::with(['lesson' /*, 'lesson.class', 'lesson.subject'*/, 'markedByTutor'])
             ->where('student_id', $studentId)
             ->orderBy('session_date', 'desc');
 
@@ -218,6 +235,57 @@ class AttendanceController extends Controller
      * GET /api/v1/lessons/{lesson}/attendance?session_date=YYYY-MM-DD
      * Returns: JSON
      */
+    public function apiLessonAttendance(Request $request, Lesson $lesson)
+    {
+        try {
+            $user = Auth::user();
+
+            // ✅ Allow admin; tutors must own the lesson
+            if (($user->role ?? null) === 'admin') {
+                // pass
+            } else {
+                $tutorIdFromRel = optional(optional($user)->tutor)->tutor_id
+                    ?? DB::table('tutors')->where('user_id', $user->id)->value('tutor_id');
+
+                if (!$tutorIdFromRel || (string)$tutorIdFromRel !== (string)$lesson->tutor_id) {
+                    return response()->json(['status' => 'fail', 'message' => 'Forbidden'], 403);
+                }
+            }
+
+            $sessionDate = $request->query('session_date'); // optional
+
+            $q = Attendance::query()
+                ->where('lesson_id', $lesson->lesson_id)
+                ->orderBy('session_date', 'desc');
+
+            if ($sessionDate) {
+                $q->whereDate('session_date', $sessionDate);
+            }
+
+            $records = $q->get([
+                'attendance_id',
+                'lesson_id',
+                'student_id',
+                'session_date',
+                'status',
+                'note',
+                'marked_by_tutor_id',
+                'marked_at',
+                'updated_at',
+            ]);
+
+            return response()->json([
+                'status'       => 'success',
+                'lesson_id'    => $lesson->lesson_id,
+                'session_date' => $sessionDate,
+                'count'        => $records->count(),
+                'attendance'   => $records,
+            ], 200, ['Content-Type' => 'application/json']);
+        } catch (\Throwable $e) {
+            \Log::error('apiLessonAttendance error', ['msg' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['status' => 'fail', 'message' => 'Server error'], 500);
+        }
+    }
 
 
 
