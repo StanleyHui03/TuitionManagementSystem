@@ -13,16 +13,15 @@ class MaterialController extends Controller
 {
     /**
      * List materials with role-based visibility:
-     * - Student: only materials uploaded by their own tutor for enrolled classes (subject + tutor match)
-     * - Tutor: all materials for subjects they teach (even if uploaded by other tutors)
-     * - Others (guest/admin): all materials (adjust if you want auth-only)
+     * - Student: only materials uploaded by their own tutor for enrolled classes
+     * - Tutor: all materials for subjects they teach
+     * - Others (guest/admin): all materials
      */
     public function index()
     {
-        // For upload dropdown
         $subjects = Subject::orderBy('subject_Name')->get(['subject_id','subject_Name']);
 
-        // Student view: restrict by subject AND tutor (own tutor only)
+        // restrict by subject AND tutor
         if (auth()->check() && auth()->user()->student_id) {
             $studentId = auth()->user()->student_id;
 
@@ -42,7 +41,7 @@ class MaterialController extends Controller
             return view('materials.material', compact('materials','subjects'));
         }
 
-        // Tutor view: see all materials for any subject they teach
+        // see all materials for any subject they teach
         if (auth()->check() && auth()->user()->tutor_id) {
             $tutorId = auth()->user()->tutor_id;
 
@@ -62,7 +61,7 @@ class MaterialController extends Controller
         return view('materials.material', compact('materials','subjects'));
     }
 
-    /** Helper: does a given student have access to this material (same subject + same tutor)? */
+    /** Helper: does a given student have access to this material, is it same subject + same tutor? */
     protected function studentHasAccess(?string $studentId, Material $material): bool
     {
         if (!$studentId) return false;
@@ -147,7 +146,7 @@ class MaterialController extends Controller
             'tutor_id'           => auth()->user()->tutor_id ?? null,
             'subject_id'         => $request->validated()['subject_id'],
             'title'              => $request->validated()['title'],
-            'file_path'          => $path, // e.g. materials/{uuid}.pdf
+            'file_path'          => $path, // materials/{uuid}.pdf
             'original_file_name' => $request->file('file')->getClientOriginalName(),
         ]);
 
@@ -157,8 +156,6 @@ class MaterialController extends Controller
     /** Tutor delete (consider restricting to owner: auth()->user()->tutor_id === $material->tutor_id). */
     public function destroy(Material $material)
     {
-        // Uncomment to enforce owner-only deletion:
-        // abort_if(auth()->user()?->tutor_id !== $material->tutor_id, 403);
 
         Storage::disk('local')->delete($material->file_path);
         $material->delete();

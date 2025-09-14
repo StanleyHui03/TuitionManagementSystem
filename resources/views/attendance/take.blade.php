@@ -50,18 +50,8 @@
 
     <form method="POST" action="{{ route('attendance.store', $lesson->lesson_id) }}" id="attendance-form">
         @csrf
-
-        {{-- REQUIRED by controller validation --}}
-        {{-- Option A: keep hidden (fixed to the date passed by controller) --}}
         <input type="hidden" name="session_date" value="{{ $session_date }}">
 
-        {{-- Option B: let tutor pick another date (uncomment to use)
-        <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Session date</label>
-            <input type="date" name="session_date" value="{{ $session_date }}"
-                   class="mt-1 rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 focus:ring-lime-500 focus:border-lime-500">
-        </div>
-        --}}
 
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm ring-1 ring-gray-200/70 dark:ring-gray-700">
             <div class="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

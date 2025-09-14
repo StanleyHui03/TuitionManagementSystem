@@ -20,7 +20,7 @@ class Pdf implements ValidationRule
             return;
         }
 
-        $mime = $value->getMimeType(); // server-detected
+        $mime = $value->getMimeType();
         if (!in_array($mime, ['application/pdf', 'application/x-pdf'], true)) {
             $fail('The file must be a PDF (invalid MIME).');
             return;

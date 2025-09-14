@@ -149,7 +149,7 @@
   </div>
 </div>
 
-{{-- Alpine.js (include only if not already in your layout) --}}
+{{-- Alpine.js --}}
 <script>
   function materialsPage() {
     return {

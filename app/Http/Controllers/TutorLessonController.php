@@ -18,18 +18,17 @@ class TutorLessonController extends Controller
     {
         $user = Auth::user();
 
-        // 1) Find tutor_id for this user
         $tutorId = DB::table('tutors')->where('user_id', $user->id)->value('tutor_id');
         if (!$tutorId) {
             abort(403, 'Your account is not linked to a tutor.');
         }
 
-        // 2) Filters
+        // Filters
         $q    = trim((string) $request->input('q', ''));
         $when = $request->input('when', 'all'); // 'all' | 'upcoming' | 'past'
         $now  = now();
 
-        // 3) Base query: only lessons belonging to this tutor (NO start_at anywhere)
+        // only lessons belonging to this tutor
         $base = Lesson::query()
             ->where('tutor_id', $tutorId)
             ->when($q !== '', function ($sub) use ($q) {
@@ -39,28 +38,26 @@ class TutorLessonController extends Controller
                        ->orWhere('room', 'like', "%{$q}%");
                 });
             })
-            ->orderedWeekly()    // order by day_of_week, start_time (scope from model)
+            ->orderedWeekly()    // order by day_of_week, start_time 
             ->get();
 
-        // 4) Compute next occurrence for each lesson (date+time) in PHP
+        // Compute next occurrence for each lesson 
         $withComputed = $base->map(function (Lesson $l) {
-            $l->next_at = $l->nextOccurrence();  // returns Carbon|null
+            $l->next_at = $l->nextOccurrence(); 
             return $l;
         });
 
-        // 5) Apply 'when' filter on computed next_at
+        // Apply 'when' filter on computed next_at
         if ($when === 'upcoming') {
             $withComputed = $withComputed->filter(fn ($l) => $l->next_at && $l->next_at->greaterThanOrEqualTo(now()))
                                          ->sortBy('next_at');
         } elseif ($when === 'past') {
             $withComputed = $withComputed->filter(fn ($l) => $l->next_at && $l->next_at->lt(now()))
                                          ->sortByDesc('next_at');
-        } else { // 'all'
-            // Keep weekly ordering; optionally sort by next_at if you prefer:
-            // $withComputed = $withComputed->sortBy('next_at');
+        } else { 
         }
 
-        // 6) Paginate the collection (so Blade links still work)
+        // Paginate the collection
         $perPage = 10;
         $page    = LengthAwarePaginator::resolveCurrentPage();
         $total   = $withComputed->count();
@@ -73,10 +70,31 @@ class TutorLessonController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        // 7) Render
+        // Render
         return view('tutor.lessons', [
             'lessons' => $lessons,
             'filters' => ['q' => $q, 'when' => $when],
         ]);
     }
+
+    public function dashboard(): View
+{
+    $user = Auth::user();
+
+    $tutorId = optional($user->tutor)->tutor_id
+        ?? DB::table('tutors')->where('user_id', $user->id)->value('tutor_id');
+
+    if (!$tutorId) {
+        abort(403, 'Your account is not linked to a tutor.');
+    }
+
+    // remove 'subject_id' from the select list
+    $lessons = Lesson::where('tutor_id', $tutorId)
+        ->orderBy('lesson_id')
+        ->get(); // or ->get(['lesson_id','class_id']); if you prefer explicit columns
+
+    return view('tutor.dashboard', compact('lessons'));
+}
+
+
 }
